@@ -1,2 +1,15 @@
-# PersonRelationGraph
-> a graph page based on Person Relation and G6
+# umi project
+
+## Getting Started
+
+Install dependencies,
+
+```bash
+$ yarn
+```
+
+Start the dev server,
+
+```bash
+$ yarn start
+```
