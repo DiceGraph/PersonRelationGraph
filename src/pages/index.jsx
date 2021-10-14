@@ -223,7 +223,7 @@ const RelationGraph = (props) => {
         const forceLayout = graph.get('layoutController').layoutMethods[0];
         forceLayout.execute();
       });
-      graph.on('node:click', function (e) {
+      const onclick = function (e) {
         const item = e.item;
         const shape = e.shape;
         const model = item.get('model');
@@ -275,7 +275,9 @@ const RelationGraph = (props) => {
           const forceLayout = graph.get('layoutController').layoutMethods[0];
           forceLayout.execute();
         }, 10);
-      });
+      };
+      graph.on('node:click', onclick);
+      graph.on('node:touchstart', onclick);
 
       return () => {
         graph.destroy();
@@ -348,7 +350,9 @@ const App = () => {
           display: 'flex',
           gap: 12,
           alignItems: 'center',
-          minWidth: 990,
+          flexWrap: 'wrap',
+          zIndex: 999,
+          height: 'fit-content',
         }}
       >
         <div style={{ color: 'white', fontWeight: 'bold', letterSpacing: 2 }}>
