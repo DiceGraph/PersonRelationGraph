@@ -1,5 +1,16 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Layout, Space, Input, Tag, Tooltip, Empty, Button, Modal } from 'antd';
+import ReactDOM from 'react-dom';
+import {
+  Layout,
+  Space,
+  Input,
+  Tag,
+  Tooltip,
+  Empty,
+  Button,
+  Modal,
+  Card,
+} from 'antd';
 import { blue, geekblue } from '@ant-design/colors';
 import {
   SyncOutlined,
@@ -41,16 +52,16 @@ const RelNode = ({ cfg = {} }) => {
             </Text>
           </Rect>
         )}
-        {cfg.hasChildren && (
+        {cfg.hasChildren && cfg.level && (
           <Circle
             style={{
               cursor: 'pointer',
               fill: geekblue.primary,
-              r: 6,
-              padding: 4,
+              r: 8,
+              padding: 3,
               alignItems: 'center',
               justifyContent: 'center',
-              margin: [12, 0, 0, 36],
+              margin: [-2, 0, 0, 4],
               radius: 4,
             }}
             class="expand"
@@ -64,7 +75,9 @@ const RelNode = ({ cfg = {} }) => {
           </Circle>
         )}
       </Circle>
-      <Text style={{ fill: '#000' }}>{cfg.label}</Text>
+      <Text class="title" style={{ fill: '#000' }}>
+        {cfg.label}
+      </Text>
     </Rect>
   );
 };
@@ -157,6 +170,33 @@ const RelationGraph = (props) => {
   useEffect(() => {
     if (usingData) {
       const element = el.current;
+      const tooltip = new G6.Tooltip({
+        container: document.body,
+        fixToNode: [0.5, 0.5],
+        itemTypes: ['node'],
+        getContent: (evt) => {
+          const tooltipEl = document.createElement('div');
+          const item = evt.item;
+          const model = item.get('model');
+          const name = model.id;
+
+          ReactDOM.render(
+            <iframe
+              style={{ border: 'none', width: 500, height: 300 }}
+              src={`https://baike.baidu.com/item/${encodeURIComponent(name)}#1`}
+            />,
+            tooltipEl,
+          );
+
+          return tooltipEl;
+        },
+        shouldBegin: (evt) => {
+          if (evt.shape?.get('class') === 'title') {
+            return true;
+          }
+          return false;
+        },
+      });
       const graph = new G6.Graph({
         container: element,
         width: element.clientWidth,
@@ -168,7 +208,7 @@ const RelationGraph = (props) => {
           nodeStrength: -320,
           alpha: 1,
           alphaMin: 0.1,
-          nodeSize: 200,
+          nodeSize: 300,
         },
         defaultNode: {
           type: 'rel',
@@ -185,12 +225,12 @@ const RelationGraph = (props) => {
         modes: {
           default: ['drag-canvas', 'drag-node'],
         },
+        plugins: [tooltip],
       });
       let nodes = [
         {
           id: name,
           label: name,
-          size: 60,
           expanded: true,
           level: 0,
           hasChildren: true,
@@ -202,7 +242,6 @@ const RelationGraph = (props) => {
         nodes.push({
           id: d.name,
           label: d.name,
-          size: 50,
           level: 1,
           sourceName: name,
           hasChildren: data[d.name],
@@ -241,7 +280,6 @@ const RelationGraph = (props) => {
                 nodes.push({
                   id: d.name,
                   label: d.name,
-                  size: Math.max(20, model.size - 10),
                   level: model.level + 1,
                   expanded: false,
                   sourceName: name,
