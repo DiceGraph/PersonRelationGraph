@@ -16,6 +16,9 @@ import {
   SyncOutlined,
   QuestionCircleOutlined,
   GithubOutlined,
+  ZoomInOutlined,
+  ZoomOutOutlined,
+  RedoOutlined,
 } from '@ant-design/icons';
 import G6 from '@antv/g6';
 import { createNodeFromReact, Rect, Circle, Text } from '@antv/g6-react-node';
@@ -87,8 +90,12 @@ G6.registerNode('rel', {
   getAnchorPoints: () => [[0.5, 0.5]],
 });
 
-const SearchOptions = ({ names = [], setSearchName }) => {
-  const [keywords, setKeywords] = useState('');
+const SearchOptions = ({ names = [], setSearchName, searchName = '' }) => {
+  const [keywords, setKeywords] = useState(searchName);
+
+  useEffect(() => {
+    setKeywords(searchName);
+  }, [searchName]);
 
   return (
     <>
@@ -103,7 +110,6 @@ const SearchOptions = ({ names = [], setSearchName }) => {
       <Button
         onClick={() => {
           const n = Math.floor(Math.random() * names.length);
-          setKeywords(names[n]);
           setSearchName(names[n]);
         }}
       >
@@ -165,11 +171,19 @@ const nodeCollapse = (nodes, edges, targetId) => {
 const RelationGraph = (props) => {
   const { data = {}, name } = props;
   const usingData = data[name];
+  const [nowData, setNowData] = useState({ nodes: [], edges: [] });
   const el = useRef();
+  const minimapEl = useRef();
+  const graphRef = useRef();
 
   useEffect(() => {
     if (usingData) {
       const element = el.current;
+      const minimap = new G6.Minimap({
+        size: [200, 100],
+        container: minimapEl.current,
+        type: 'keyShape',
+      });
       const tooltip = new G6.Tooltip({
         container: document.body,
         fixToNode: [0.5, 0.5],
@@ -223,9 +237,9 @@ const RelationGraph = (props) => {
           },
         },
         modes: {
-          default: ['drag-canvas', 'drag-node'],
+          default: ['drag-canvas', 'drag-node', 'scroll-canvas'],
         },
-        plugins: [tooltip],
+        plugins: [tooltip, minimap],
       });
       let nodes = [
         {
@@ -254,6 +268,7 @@ const RelationGraph = (props) => {
       });
       G6.Util.processParallelEdges(edges);
       graph.data({ nodes, edges });
+      setNowData({ nodes, edges });
       graph.render();
       graph.on('node:dragstart', function (e) {
         graph.layout();
@@ -309,6 +324,7 @@ const RelationGraph = (props) => {
             edges,
           });
         }
+        setNowData({ nodes, edges });
         setTimeout(() => {
           const forceLayout = graph.get('layoutController').layoutMethods[0];
           forceLayout.execute();
@@ -317,6 +333,7 @@ const RelationGraph = (props) => {
       graph.on('node:click', onclick);
       graph.on('node:touchstart', onclick);
 
+      graphRef.current = graph;
       return () => {
         graph.destroy();
       };
@@ -327,7 +344,62 @@ const RelationGraph = (props) => {
     return <Empty style={{ margin: 36 }} description="请选择搜索对象" />;
   }
 
-  return <div ref={el} style={{ width: '100%', height: '100%' }}></div>;
+  return (
+    <div
+      ref={el}
+      style={{ width: '100%', height: '100%', position: 'relative' }}
+    >
+      <Card
+        size="small"
+        style={{ position: 'absolute', top: 0, margin: 'auto', left: 0 }}
+      >
+        <Space>
+          <span>节点数量 {nowData.nodes.length}</span>
+          <span>边数量 {nowData.edges.length}</span>
+          <span>
+            <Button
+              type="link"
+              onClick={() => {
+                graphRef.current.zoom(1.2);
+              }}
+            >
+              <ZoomInOutlined />
+            </Button>
+          </span>
+          <span>
+            <Button
+              type="link"
+              onClick={() => {
+                graphRef.current.zoom(0.8);
+              }}
+            >
+              <ZoomOutOutlined />
+            </Button>
+          </span>
+          <span>
+            <Button
+              type="link"
+              onClick={() => {
+                graphRef.current.zoomTo(1);
+              }}
+            >
+              <RedoOutlined />
+            </Button>
+          </span>
+        </Space>
+      </Card>
+      <div
+        ref={minimapEl}
+        style={{
+          position: 'absolute',
+          top: 0,
+          margin: 'auto',
+          right: 0,
+          background: 'white',
+        }}
+      />
+    </div>
+  );
 };
 
 const openAboutUs = () => {
@@ -366,10 +438,12 @@ const openAboutUs = () => {
   });
 };
 
-const App = () => {
+const App = (props) => {
+  const { location, history } = props;
   const [data, setData] = useState({});
   const [searchName, setSearchName] = useState('');
   const names = useMemo(() => Object.keys(data), [data]);
+  const queryName = location.query.name;
 
   useEffect(() => {
     fetch(
@@ -380,6 +454,18 @@ const App = () => {
       }),
     );
   }, []);
+
+  useEffect(() => {
+    if (searchName !== queryName && data[queryName]) {
+      setSearchName(queryName);
+    }
+  }, [queryName, data]);
+
+  useEffect(() => {
+    if (searchName && searchName !== queryName) {
+      history.replace(`?name=${searchName}`);
+    }
+  }, [searchName]);
 
   return (
     <Layout style={{ height: '100%' }}>
@@ -397,7 +483,11 @@ const App = () => {
           人物知识图谱分析
         </div>
         {data ? (
-          <SearchOptions names={names} setSearchName={setSearchName} />
+          <SearchOptions
+            names={names}
+            searchName={searchName}
+            setSearchName={setSearchName}
+          />
         ) : (
           <span style={{ color: 'white' }}>
             <SyncOutlined spin /> 数据正在加载中
