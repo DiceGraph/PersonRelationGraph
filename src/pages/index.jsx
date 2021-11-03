@@ -24,6 +24,23 @@ import G6 from '@antv/g6';
 import { createNodeFromReact, Rect, Circle, Text } from '@antv/g6-react-node';
 import './index.less';
 
+const LevelTag = ({ level = 0 }) => (
+  <Rect
+    style={{
+      fill: geekblue[Math.min(level, 5)],
+      width: 36,
+      padding: 4,
+      alignItems: 'center',
+      margin: [-12, 0, 0, -36],
+      radius: 4,
+    }}
+  >
+    <Text style={{ fill: level > 3 ? '#fff' : '#000', fontSize: 10 }}>
+      第{level}度
+    </Text>
+  </Rect>
+);
+
 const RelNode = ({ cfg = {} }) => {
   return (
     <Rect style={{ alignItems: 'center' }}>
@@ -32,29 +49,12 @@ const RelNode = ({ cfg = {} }) => {
         style={{
           r: 12,
           stroke: blue.primary,
-          fill: cfg.level === 0 ? geekblue[5] : blue[1],
+          fill: cfg.level === 0 ? geekblue[5] : blue.primary,
           margin: 12,
         }}
         draggable
       >
-        {cfg.level && (
-          <Rect
-            style={{
-              fill: geekblue[Math.min(cfg.level, 5)],
-              width: 36,
-              padding: 4,
-              alignItems: 'center',
-              margin: [-12, 0, 0, -36],
-              radius: 4,
-            }}
-          >
-            <Text
-              style={{ fill: cfg.level > 3 ? '#fff' : '#000', fontSize: 10 }}
-            >
-              第{cfg.level || '0'}度
-            </Text>
-          </Rect>
-        )}
+        {cfg.level && <LevelTag level={cfg.level} />}
         {cfg.hasChildren && cfg.level && (
           <Circle
             style={{
